@@ -1,0 +1,26 @@
+{
+    "id": "pin-sports-2",
+    "time": "2016-01-30T19:00:00Z",
+    "layout": {
+        "type": "sportsPin",
+        "shortTitle": "Your daily challenge",
+        "title": "Can you match @kevinwang?",
+        "shortSubtitle": "@kevinwang",
+        "subtitle": "Today's challenge",
+        "body": "@kevinwang reached 54 steps last morning. Can you one-up them?",
+        "tinyIcon": "system://images/STOCKS_EVENT",
+        "lastUpdated": "2015-03-18T18:45:00Z",
+        "nameAway": "THEM",
+        "nameHome": "YOU",
+        "scoreAway": "54",
+        "scoreHome": "49",
+        "sportsGameState": "in-game"
+    },
+    "actions": [
+        {
+            "title": "Open App",
+            "type": "openWatchApp",
+            "launchCode": 9001
+        }
+    ]
+}
