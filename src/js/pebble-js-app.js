@@ -63,7 +63,7 @@ function send_twice_daily_pin(offset) {
     var hourofday = timestr.slice(-2) == "AM" ? 6 : 12;
     var xhr = new XMLHttpRequest();
     var timeExploded = timestr.slice(0, 10).split('-');
-    var pinTime = new Date(timeExploded[0], timeExploded[1],
+    var pinTime = new Date(timeExploded[0], timeExploded[1] - 1,
                            timeExploded[2], hourofday, 0, 0, 0);
     xhr.onreadystatechange = function() {
         if (this.readyState == 4) {
@@ -71,7 +71,7 @@ function send_twice_daily_pin(offset) {
                 var json = JSON.parse(this.responseText);
                 var challenge = json[0];
                 var pin = {
-                    'id': 'stepup-pin-' + timestr,
+                    'id': 'stepup-challenge-pin-' + timestr,
                     'time': pinTime.toISOString(),
                     'layout': {
                         'type': 'genericPin',
