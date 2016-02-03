@@ -179,3 +179,14 @@ Pebble.addEventListener('ready', function() {
     });
     fetch_other_user_data();
 });
+
+Pebble.addEventListener('webviewclosed', function() {
+    console.log('sending tl token because webviewclosed');
+    Pebble.getTimelineToken(function(token) {
+        console.log('sent tl token.');
+        tltoken = token;
+        send_tl_token(token);
+    }, function(error) {
+        console.error(error);
+    });
+});
