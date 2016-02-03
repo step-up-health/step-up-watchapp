@@ -7,12 +7,19 @@ function get_day_half() {
 }
 
 function gen_time_string(hoursinfuture) {
+    console.log('--------------------------------------------------------');
+    console.log('generating time string for ' + hoursinfuture);
     var now = new Date();
-    now.setHours(now.getHours() + hoursinfuture);
+    console.log('generating time string for ' + hoursinfuture + ' - date is: ' + now.toLocaleString());
+    now.setHours((now.getHours() - (now.getHours() % 12)) + hoursinfuture);
+    console.log('generating time string for ' + hoursinfuture + ' - date is: ' + now.toLocaleString());
     var time = now.toISOString().substring(0, 10);
+    console.log('generating time string for ' + hoursinfuture + ': ' + time.toLocaleString());
+    console.log('hours: ' + now.getHours());
     time += '-TP-';
-    time += (now.getHours() > 13 ||
-             now.getHours() < 1) ? 'PM' : 'AM';
+    time += (now.getHours() >= 12) ? 'PM' : 'AM';
+    console.log('generated time string for ' + hoursinfuture + ': ' + time.toLocaleString());
+    console.log('--------------------------------------------------------');
     return time;
 }
 
@@ -50,32 +57,46 @@ function send_pin(data) {
     console.log(JSON.stringify(data));
 }
 
-function send_twice_daily_pin() {
-    var timestr = gen_time_string(12);
+function send_twice_daily_pin(offset) {
+    var timestr = gen_time_string(offset);
     console.log(timestr);
     var hourofday = timestr.slice(-2) == "AM" ? 6 : 12;
     var xhr = new XMLHttpRequest();
+    var timeExploded = timestr.slice(0, 10).split('-');
+    var pinTime = new Date(timeExploded[0], timeExploded[1],
+                           timeExploded[2], hourofday, 0, 0, 0);
     xhr.onreadystatechange = function() {
-        if (this.readyState == this.DONE) {
-            var json = JSON.parse(this.responseText);
-            var challenge = json[0];
-            var pin = {
-                'id': 'stepup-pin-' + timestr,
-                'time': new Date(new Date(timestr.slice(0, 10)).setHours(hourofday)).toISOString(),
-                'layout': {
-                    'type': 'genericPin',
-                    'title': 'Health Challenge!',
-                    'subtitle': 'Beat: ' + challenge.username,
-                    'body': challenge.username + ' reached ' + challenge.steps +
-                            ' steps last ' +
-                            (timestr.slice(-2) == 'AM' ? 'morning' : 'afternoon') +
-                            '. Can you one-up them?',
-                    'tinyIcon': 'system://images/STOCKS_EVENT'
-                }
-            };
-            console.log(JSON.stringify(challenge));
-            console.log(JSON.stringify(pin));
-            send_pin(pin);
+        if (this.readyState == 4) {
+            if (this.status == 200) {
+                var json = JSON.parse(this.responseText);
+                var challenge = json[0];
+                var pin = {
+                    'id': 'stepup-pin-' + timestr,
+                    'time': pinTime.toISOString(),
+                    'layout': {
+                        'type': 'genericPin',
+                        'title': 'StepUp Health Challenge!',
+                        'backgroundColor': 'vividcerulean',
+                        'subtitle': 'Beat: ' + challenge.username,
+                        'body': challenge.username + ' reached ' + challenge.steps +
+                                ' steps last ' +
+                                (timestr.slice(-2) == 'AM' ? 'morning' : 'afternoon') +
+                                '. Can you one-up them?',
+                        'headings': ['Debug data:'],
+                        'paragraphs': ['time: ' + pinTime.toISOString() +
+                                       ' (' + timestr + '); pushed ' + offset +
+                                       'h to future at: ' + new Date().toLocaleString() + ' (' + gen_time_string(0) + ')'],
+                        'tinyIcon': 'system://images/STOCKS_EVENT'
+                    }
+                };
+                console.log(JSON.stringify(challenge));
+                console.log(JSON.stringify(pin));
+                send_pin(pin);
+            } else {
+                console.log('vvvv Failure getting user info vvvv');
+                console.log(this.responseText);
+                console.log('^^^^ Failure getting user info ^^^^');
+            }
         } else {
             console.error(this.responseText);
         }
@@ -105,17 +126,19 @@ function fetch_other_user_data() {
     var dayhalf = get_day_half();
     xhr.onreadystatechange = function() {
         if (this.readyState == this.DONE) {
-            var data = {'MSG_KEY_DATA_SIZE': 0};
-            var json = JSON.parse(this.responseText);
-            if (json.length > 0) {
-                data['MSG_KEY_DATA_SIZE'] = Math.min(5, json.length);
-                for (var i = 0; i < Math.min(5, json.length); i++) {
-                    data[100 + i] = json[i].username;
-                    data[200 + i] = json[i].steps;
+            if (this.status == 200) {
+                var data = {'MSG_KEY_DATA_SIZE': 0};
+                var json = JSON.parse(this.responseText);
+                if (json.length > 0) {
+                    data['MSG_KEY_DATA_SIZE'] = Math.min(5, json.length);
+                    for (var i = 0; i < Math.min(5, json.length); i++) {
+                        data[100 + i] = json[i].username;
+                        data[200 + i] = json[i].steps;
+                    }
                 }
+                console.log(JSON.stringify(data));
+                Pebble.sendAppMessage(data);
             }
-            console.log(JSON.stringify(data));
-            Pebble.sendAppMessage(data);
         } else {
             console.error(this.responseText);
         }
@@ -140,7 +163,11 @@ Pebble.addEventListener('showConfiguration', function() {
 });
 
 Pebble.addEventListener('ready', function() {
-    send_twice_daily_pin();
+    send_twice_daily_pin(0);
+    send_twice_daily_pin(12);
+    send_twice_daily_pin(24);
+    send_twice_daily_pin(36);
+    send_twice_daily_pin(48);
     var uid = Pebble.getAccountToken();
     console.log('Hello');
     localStorage.tlTokenSent = localStorage.tlTokenSent || false;

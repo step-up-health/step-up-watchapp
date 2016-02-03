@@ -243,6 +243,33 @@ static time_t today_beginning() {
     return mktime(&here_time);
 }
 
+static void update_steps() {
+    HealthServiceAccessibilityMask availability = health_service_metric_accessible(HealthMetricStepCount,
+                                         time(NULL) - 360,
+                                         time(NULL));
+    time_t now_ts = time(NULL);
+    struct tm *now = localtime(&now_ts);
+    now->tm_hour = 0;
+    now->tm_min = 0;
+    now->tm_sec = 0;
+    time_t midnight_ts = mktime(now);
+    if (availability == HealthServiceAccessibilityMaskAvailable) {
+        if (midnight_ts + 12*60*60 > time(NULL)) { // At or before 11:59am
+            your_steps = health_service_sum(HealthMetricStepCount,
+                midnight_ts,
+                time(NULL));
+            time_period = TimePeriodMorning;
+        } else {
+            your_steps = health_service_sum(HealthMetricStepCount,
+                midnight_ts + 12*60*60,
+                time(NULL));
+            time_period = TimePeriodEvening;
+        }
+        // your_steps = health_service_sum_today(HealthMetricStepCount);
+    }
+}
+
+
 static void init(void) {
     window = window_create();
     window_set_window_handlers(window, (WindowHandlers) {
@@ -253,23 +280,7 @@ static void init(void) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Pushing");
     window_stack_push(window, animated);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Pushed");
-    HealthServiceAccessibilityMask availability = health_service_metric_accessible(HealthMetricStepCount,
-                                         time(NULL) - 360,
-                                         time(NULL));
-    if (availability == HealthServiceAccessibilityMaskAvailable) {
-        if (clock_to_timestamp(TODAY, 12, 0) > time(NULL)) { // At or before 11:59am
-            your_steps = health_service_sum(HealthMetricStepCount,
-                today_beginning(),
-                time(NULL));
-            time_period = TimePeriodMorning;
-        } else {
-            your_steps = health_service_sum(HealthMetricStepCount,
-                today_beginning() + 12*60*60,
-                time(NULL));
-            time_period = TimePeriodEvening;
-        }
-        // your_steps = health_service_sum_today(HealthMetricStepCount);
-    }
+    update_steps();
     // APP_LOG(APP_LOG_LEVEL_DEBUG, "available: %u", availability == HealthServiceAccessibilityMaskAvailable);
     // APP_LOG(APP_LOG_LEVEL_DEBUG, "nopermission: %u", availability & HealthServiceAccessibilityMaskNoPermission);
     // APP_LOG(APP_LOG_LEVEL_DEBUG, "notsupported: %u", availability & HealthServiceAccessibilityMaskNotSupported);
@@ -283,30 +294,22 @@ static void init(void) {
 
 static void deinit(void) {
     window_destroy(window);
-    WeekDay week[7] = {MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY};
-    time_t closestFutureTime = time(NULL) + 10*24*60*60;
-    bool isNoonWakeup = false;
-    for (uint8_t i = 0; i < 7; i++) {
-        time_t temp1 = clock_to_timestamp(week[i], 0, 0);
-        time_t temp2 = clock_to_timestamp(week[i], 12, 0);
-        if (temp1 < closestFutureTime) {
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "%lu is smaller", temp1);
-            closestFutureTime = temp1;
-            isNoonWakeup = false;
-        }
-        if (temp2 < closestFutureTime) {
-            APP_LOG(APP_LOG_LEVEL_DEBUG, "%lu is smaller [2]", temp2);
-            closestFutureTime = temp2;
-            isNoonWakeup = true;
-        }
+    time_t now_ts = time(NULL);
+    struct tm *now = localtime(&now_ts);
+    now->tm_hour = 0;
+    now->tm_min = 0;
+    now->tm_sec = 0;
+    time_t push_ts = mktime(now);
+    while (push_ts < now_ts) {
+        push_ts += 24*60*60;
     }
-    wakeup_cancel_all();
-    wakeup_schedule(closestFutureTime, isNoonWakeup + 40, false);
-    closestFutureTime += 12*60*60;
-    wakeup_schedule(closestFutureTime, (!isNoonWakeup) + 40, false);
-    closestFutureTime += 12*60*60;
-    wakeup_schedule(closestFutureTime, isNoonWakeup + 40, false);
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "%lu and %u", closestFutureTime, isNoonWakeup);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "first wakeup pushed at %lu", push_ts);
+    wakeup_schedule(push_ts, 40, false);
+    push_ts += 12*60*60;
+    wakeup_schedule(push_ts, 40, false);
+    push_ts += 12*60*60;
+    wakeup_schedule(push_ts, 40, false);
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "last wakeup pushed at %lu", push_ts);
 }
 
 int main(void) {
