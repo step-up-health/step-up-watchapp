@@ -82,10 +82,10 @@ function send_twice_daily_pin(offset) {
                                 ' steps last ' +
                                 (timestr.slice(-2) == 'AM' ? 'morning' : 'afternoon') +
                                 '. Can you one-up them?',
-                        'headings': ['Debug data:'],
-                        'paragraphs': ['time: ' + pinTime.toISOString() +
-                                       ' (' + timestr + '); pushed ' + offset +
-                                       'h to future at: ' + new Date().toLocaleString() + ' (' + gen_time_string(0) + ')'],
+                        // 'headings': ['Debug data:'],
+                        // 'paragraphs': ['time: ' + pinTime.toISOString() +
+                        //                ' (' + timestr + '); pushed ' + offset +
+                        //                'h to future at: ' + new Date().toLocaleString() + ' (' + gen_time_string(0) + ')'],
                         'tinyIcon': 'system://images/STOCKS_EVENT'
                     }
                 };
