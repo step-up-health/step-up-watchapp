@@ -10,6 +10,8 @@ static bool loaded = false;
 static char** friend_names;
 static uint32_t* friend_steps;
 
+static bool selection_was_changed = false;
+
 typedef enum {
     TimePeriodMorning,
     TimePeriodEvening,
@@ -192,6 +194,11 @@ static void main_menu_draw_row(GContext *ctx, const Layer *cell_layer,
     }
 }
 
+static void main_menu_selection_changed(MenuLayer *menu_layer, MenuIndex to_index,
+                            MenuIndex from_index, void *callback_context) {
+    selection_was_changed = true;
+}
+
 static void window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
@@ -201,6 +208,7 @@ static void window_load(Window *window) {
         .get_num_rows = main_menu_row_amt,
         .draw_row = main_menu_draw_row,
         .get_cell_height = main_menu_row_size,
+        .selection_changed = main_menu_selection_changed,
     });
     menu_layer_set_click_config_onto_window(s_menu_layer, window);
     menu_layer_set_normal_colors(s_menu_layer, GColorWhite, GColorBlack);
@@ -267,8 +275,20 @@ static void update_steps() {
         }
         // your_steps = health_service_sum_today(HealthMetricStepCount);
     }
+    if (s_menu_layer != NULL) {
+        menu_layer_reload_data(s_menu_layer);
+    }
 }
 
+static void health_update(HealthEventType event, void *context) {
+    update_steps();
+}
+
+static void maybe_auto_quit(void *callback_data) {
+    if (!selection_was_changed) {
+        window_stack_remove(window, false);
+    }
+}
 
 static void init(void) {
     window = window_create();
@@ -288,8 +308,11 @@ static void init(void) {
     // APP_LOG(APP_LOG_LEVEL_DEBUG, "availability: %u", availability);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Steps gotten");
 
+    app_timer_register(60 * 1000, maybe_auto_quit, NULL);
+
     app_message_register_inbox_received(inbox_handler);
     app_message_open(1024, 128);
+    health_service_events_subscribe(health_update, NULL);
 }
 
 static void deinit(void) {
