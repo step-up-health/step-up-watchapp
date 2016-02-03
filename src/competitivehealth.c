@@ -242,15 +242,6 @@ static void inbox_handler(DictionaryIterator *iterator, void *context) {
     send_user_steps();
 }
 
-static time_t today_beginning() {
-    time_t now = time(NULL);
-    struct tm here_time = *localtime(&now);
-    here_time.tm_hour = 0;
-    here_time.tm_min = 0;
-    here_time.tm_sec = 0;
-    return mktime(&here_time);
-}
-
 static void update_steps() {
     HealthServiceAccessibilityMask availability = health_service_metric_accessible(HealthMetricStepCount,
                                          time(NULL) - 360,
@@ -324,13 +315,14 @@ static void deinit(void) {
     now->tm_sec = 0;
     time_t push_ts = mktime(now);
     while (push_ts < now_ts) {
-        push_ts += 24*60*60;
+        push_ts += 6*60*60;
     }
+    push_ts -= 10*60; // we want it updating ahead of noon/midnight
     APP_LOG(APP_LOG_LEVEL_DEBUG, "first wakeup pushed at %lu", push_ts);
     wakeup_schedule(push_ts, 40, false);
-    push_ts += 12*60*60;
+    push_ts += 6*60*60;
     wakeup_schedule(push_ts, 40, false);
-    push_ts += 12*60*60;
+    push_ts += 6*60*60;
     wakeup_schedule(push_ts, 40, false);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "last wakeup pushed at %lu", push_ts);
 }
