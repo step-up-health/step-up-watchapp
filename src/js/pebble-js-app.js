@@ -7,19 +7,11 @@ function get_day_half() {
 }
 
 function gen_time_string(hoursinfuture) {
-    console.log('--------------------------------------------------------');
-    console.log('generating time string for ' + hoursinfuture);
     var now = new Date();
-    console.log('generating time string for ' + hoursinfuture + ' - date is: ' + now.toLocaleString());
     now.setHours((now.getHours() - (now.getHours() % 12)) + hoursinfuture);
-    console.log('generating time string for ' + hoursinfuture + ' - date is: ' + now.toLocaleString());
     var time = now.toISOString().substring(0, 10);
-    console.log('generating time string for ' + hoursinfuture + ': ' + time.toLocaleString());
-    console.log('hours: ' + now.getHours());
     time += '-TP-';
     time += (now.getHours() >= 12) ? 'PM' : 'AM';
-    console.log('generated time string for ' + hoursinfuture + ': ' + time.toLocaleString());
-    console.log('--------------------------------------------------------');
     return time;
 }
 
