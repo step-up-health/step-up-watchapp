@@ -6,3 +6,4 @@ build
 .lock-waf*
 
 pebble_screenshot_*
+screenshot-*
