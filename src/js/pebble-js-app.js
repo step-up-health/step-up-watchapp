@@ -60,6 +60,11 @@ function send_twice_daily_pin(timestr) {
         if (this.readyState == 4) {
             if (this.status == 200) {
                 var json = JSON.parse(this.responseText);
+                if (json.length === 0) {
+                    return;
+                }
+                json.sort(function(a, b) { return b.steps - a.steps; });
+                console.log(JSON.stringify(json));
                 var challenge = json[0];
                 if (!('username' in challenge)) {
                     // Challenge is actually useless.
@@ -86,6 +91,7 @@ function send_twice_daily_pin(timestr) {
                 };
                 console.log(JSON.stringify(challenge));
                 console.log(JSON.stringify(pin));
+                console.log('---- Sending pin ----');
                 send_pin(pin);
             } else {
                 console.log('vvvv Failure getting user info vvvv');
@@ -131,6 +137,7 @@ function fetch_other_user_data() {
                 console.log(this.responseText);
                 var json = JSON.parse(this.responseText);
                 if (json.length > 0) {
+                    json.sort(function(a, b) { return b.steps - a.steps; });
                     data['MSG_KEY_DATA_SIZE'] = Math.min(5, json.length);
                     for (var i = 0; i < Math.min(5, json.length); i++) {
                         data[100 + i] = json[i].username;
