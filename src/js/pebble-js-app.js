@@ -57,9 +57,8 @@ function send_pin(data) {
     console.log(JSON.stringify(data));
 }
 
-function send_twice_daily_pin(offset) {
-    var timestr = gen_time_string(offset);
-    console.log(timestr);
+function send_twice_daily_pin(timestr) {
+    console.log('Send twice daily pin - timestr:', timestr);
     var hourofday = timestr.slice(-2) == "AM" ? 6 : 12;
     var xhr = new XMLHttpRequest();
     var timeExploded = timestr.slice(0, 10).split('-');
@@ -70,6 +69,11 @@ function send_twice_daily_pin(offset) {
             if (this.status == 200) {
                 var json = JSON.parse(this.responseText);
                 var challenge = json[0];
+                if (!('username' in challenge)) {
+                    // Challenge is actually useless.
+                    // The user should get some friends.
+                    return;
+                }
                 var pin = {
                     'id': 'stepup-challenge-pin-' + timestr,
                     'time': pinTime.toISOString(),
@@ -84,8 +88,7 @@ function send_twice_daily_pin(offset) {
                                 '. Can you one-up them?',
                         // 'headings': ['Debug data:'],
                         // 'paragraphs': ['time: ' + pinTime.toISOString() +
-                        //                ' (' + timestr + '); pushed ' + offset +
-                        //                'h to future at: ' + new Date().toLocaleString() + ' (' + gen_time_string(0) + ')'],
+                        //                ' (' + timestr + '); pushed at: ' + new Date().toLocaleString() + ' (' + gen_time_string(0) + ')'],
                         'tinyIcon': 'system://images/STOCKS_EVENT'
                     }
                 };
@@ -105,6 +108,11 @@ function send_twice_daily_pin(offset) {
                     'get_active_friends?uid=' + Pebble.getAccountToken() +
                     '&dayhalf=' + timestr.slice(-2));
     xhr.send();
+}
+
+function send_applicable_pins() {
+    send_twice_daily_pin(gen_time_string(12));
+    send_twice_daily_pin(gen_time_string(24));
 }
 
 function send_hist_data(data) {
@@ -163,11 +171,7 @@ Pebble.addEventListener('showConfiguration', function() {
 });
 
 Pebble.addEventListener('ready', function() {
-    send_twice_daily_pin(0);
-    send_twice_daily_pin(12);
-    send_twice_daily_pin(24);
-    send_twice_daily_pin(36);
-    send_twice_daily_pin(48);
+    send_applicable_pins();
     var uid = Pebble.getAccountToken();
     console.log('Hello');
     localStorage.tlTokenSent = localStorage.tlTokenSent || false;
