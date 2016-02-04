@@ -101,16 +101,55 @@ static void main_menu_draw_row(GContext *ctx, const Layer *cell_layer,
     } else if (cell_index->row - 1 < friend_amt) {
         uint8_t friend_num = cell_index->row - 1;
         GRect draw_rect = layer_get_bounds(cell_layer);
+
+        draw_rect.origin.x += 5;
+        draw_rect.size.w -= 10;
+        if (graphics_text_layout_get_content_size(friend_names[friend_num],
+                       fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD),
+                       draw_rect, GTextOverflowModeWordWrap, GTextAlignmentCenter).h <= 28) {
+            // use 28, centered vertically
+            graphics_draw_text(ctx, friend_names[friend_num],
+                fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD),
+                draw_rect, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+        } else if (graphics_text_layout_get_content_size(friend_names[friend_num],
+                       fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+                       draw_rect, GTextOverflowModeWordWrap, GTextAlignmentCenter).h <= 24) {
+            // use 24, centered vertically
+            draw_rect.origin.y += 2;
+            graphics_draw_text(ctx, friend_names[friend_num],
+                fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+                draw_rect, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+            draw_rect.origin.y -= 2;
+        } else if (graphics_text_layout_get_content_size(friend_names[friend_num],
+                       fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
+                       draw_rect, GTextOverflowModeWordWrap, GTextAlignmentCenter).h <= 18) {
+            // use 18, centered vertically
+            draw_rect.origin.y += 5;
+            graphics_draw_text(ctx, friend_names[friend_num],
+                fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD),
+                draw_rect, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+            draw_rect.origin.y -= 5;
+        } else if (graphics_text_layout_get_content_size(friend_names[friend_num],
+                       fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
+                       draw_rect, GTextOverflowModeWordWrap, GTextAlignmentCenter).h <= 14) {
+            // use 14, centered vertically
+            draw_rect.origin.y += 7;
+            graphics_draw_text(ctx, friend_names[friend_num],
+                fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
+                draw_rect, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+            draw_rect.origin.y -= 7;
+        } else {
+            // this username is ridiculously gigantic
+            graphics_draw_text(ctx, friend_names[friend_num],
+                fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
+                draw_rect, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+        }
+        draw_rect.origin.x -= 5;
+        draw_rect.size.w += 10;
+
         if (menu_layer_get_center_focused(menu_layer) &&
             menu_layer_get_selected_index(menu_layer).row != cell_index->row) {
-            graphics_draw_text(ctx, friend_names[friend_num],
-                fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD),
-                draw_rect, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
-            return;
-        } else {
-            graphics_draw_text(ctx, friend_names[friend_num],
-                fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD),
-                draw_rect, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+            return; // Stop drawing after username on chalk unfocused rows
         }
         draw_rect.origin.y += 28;
         char friendly_info_buff_1[10];

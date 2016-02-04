@@ -128,6 +128,7 @@ function fetch_other_user_data() {
         if (this.readyState == this.DONE) {
             if (this.status == 200) {
                 var data = {'MSG_KEY_DATA_SIZE': 0};
+                console.log(this.responseText);
                 var json = JSON.parse(this.responseText);
                 if (json.length > 0) {
                     data['MSG_KEY_DATA_SIZE'] = Math.min(5, json.length);
