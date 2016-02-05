@@ -3,7 +3,7 @@
     "shortName": "Step Up!",
     "longName": "Step Up!",
     "companyName": "Johannes N & Kevin W",
-    "versionLabel": "1.2",
+    "versionLabel": "1.3",
     "sdkVersion": "3",
     "targetPlatforms": ["basalt", "chalk"],
     "watchapp": {
