@@ -2,16 +2,28 @@
 
 var tltoken = '';
 
+function stringpad(str, char, amt) {
+    str = '' + str;
+    while (str.length < amt) {
+        str = char + str;
+    }
+    return str;
+}
+
 function get_day_half() {
     return (new Date().getHours() > 12) ? 'PM' : 'AM';
 }
 
 function gen_time_string(hoursinfuture) {
+    console.log('GTS ===> hif: ' + hoursinfuture);
     var now = new Date();
     now.setHours((now.getHours() - (now.getHours() % 12)) + hoursinfuture);
-    var time = now.toISOString().substring(0, 10);
+    var time = stringpad(now.getFullYear(), '0', 4) + '-' +
+               stringpad((now.getMonth() + 1), '0', 2) + '-' +
+               stringpad((now.getDate()), '0', 2);
     time += '-TP-';
     time += (now.getHours() >= 12) ? 'PM' : 'AM';
+    console.log('GTS ===> ' + time);
     return time;
 }
 
