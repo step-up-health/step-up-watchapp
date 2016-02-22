@@ -1,4 +1,5 @@
 #include <pebble.h>
+#include "health-utils.h"
 
 #define MSG_KEY_DATA_SIZE 0
 
@@ -20,6 +21,8 @@ typedef enum {
 static TimePeriod time_period;
 
 static uint32_t your_steps = 0;
+
+bool steps_data_loaded = false;
 
 static void send_user_steps() {
     // This used to run only when launch_reason() == APP_LAUNCH_WAKEUP.
@@ -55,6 +58,37 @@ static int16_t main_menu_row_size(MenuLayer *menu_layer,
     return 95;
 }
 
+static void update_steps() {
+    HealthServiceAccessibilityMask availability = health_service_metric_accessible(HealthMetricStepCount,
+                                         time(NULL) - 360,
+                                         time(NULL));
+    time_t now_ts = time(NULL);
+    struct tm *now = localtime(&now_ts);
+    now->tm_hour = 0;
+    now->tm_min = 0;
+    now->tm_sec = 0;
+    time_t midnight_ts = mktime(now);
+    time_t morning_ending = midnight_ts + 12*60*60;
+    if (availability == HealthServiceAccessibilityMaskAvailable) {
+        if (morning_ending > time(NULL)) {
+            your_steps = health_sum_timeframe(HealthMetricStepCount,
+                                midnight_ts,
+                                morning_ending);
+            time_period = TimePeriodMorning;
+        } else {
+            your_steps = health_sum_timeframe(HealthMetricStepCount,
+                                morning_ending,
+                                time(NULL));
+            time_period = TimePeriodEvening;
+        }
+        // your_steps = health_service_sum_today(HealthMetricStepCount);
+    }
+    if (s_menu_layer != NULL) {
+        menu_layer_reload_data(s_menu_layer);
+    }
+    steps_data_loaded = true;
+}
+
 static void main_menu_draw_row(GContext *ctx, const Layer *cell_layer,
         MenuIndex *cell_index, void *callback_context) {
     MenuLayer *menu_layer = (MenuLayer*) callback_context;
@@ -65,9 +99,13 @@ static void main_menu_draw_row(GContext *ctx, const Layer *cell_layer,
         draw_rect.origin.x += 10;
         draw_rect.origin.y += 10;
         char user_info[40];
-        snprintf(user_info, 40, "You took %lu steps this %s.",
-            your_steps,
-            time_period == TimePeriodMorning ? "morning" : "evening");
+        if (!steps_data_loaded) {
+            snprintf(user_info, 40, "Loading steps data...");
+        } else {
+            snprintf(user_info, 40, "You took %lu steps this %s.",
+                your_steps,
+                time_period == TimePeriodMorning ? "morning" : "evening");
+        }
         graphics_draw_text(ctx, user_info,
             fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD),
             draw_rect, GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
@@ -238,6 +276,10 @@ static void main_menu_selection_changed(MenuLayer *menu_layer, MenuIndex to_inde
     selection_was_changed = true;
 }
 
+static void health_update(HealthEventType event, void *context) {
+    update_steps();
+}
+
 static void window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
@@ -253,6 +295,8 @@ static void window_load(Window *window) {
     menu_layer_set_normal_colors(s_menu_layer, GColorWhite, GColorBlack);
     menu_layer_set_highlight_colors(s_menu_layer, GColorVividCerulean, GColorWhite);
     layer_add_child(window_layer, menu_layer_get_layer(s_menu_layer));
+
+    health_service_events_subscribe(health_update, NULL);
 }
 
 static void window_unload(Window *window) {
@@ -281,39 +325,6 @@ static void inbox_handler(DictionaryIterator *iterator, void *context) {
     send_user_steps();
 }
 
-static void update_steps() {
-    HealthServiceAccessibilityMask availability = health_service_metric_accessible(HealthMetricStepCount,
-                                         time(NULL) - 360,
-                                         time(NULL));
-    time_t now_ts = time(NULL);
-    struct tm *now = localtime(&now_ts);
-    now->tm_hour = 0;
-    now->tm_min = 0;
-    now->tm_sec = 0;
-    time_t midnight_ts = mktime(now);
-    if (availability == HealthServiceAccessibilityMaskAvailable) {
-        if (midnight_ts + 12*60*60 > time(NULL)) { // At or before 11:59am
-            your_steps = health_service_sum(HealthMetricStepCount,
-                midnight_ts,
-                time(NULL));
-            time_period = TimePeriodMorning;
-        } else {
-            your_steps = health_service_sum(HealthMetricStepCount,
-                midnight_ts + 12*60*60,
-                time(NULL));
-            time_period = TimePeriodEvening;
-        }
-        // your_steps = health_service_sum_today(HealthMetricStepCount);
-    }
-    if (s_menu_layer != NULL) {
-        menu_layer_reload_data(s_menu_layer);
-    }
-}
-
-static void health_update(HealthEventType event, void *context) {
-    update_steps();
-}
-
 static void maybe_auto_quit(void *callback_data) {
     if (!selection_was_changed) {
         window_stack_remove(window, false);
@@ -330,7 +341,6 @@ static void init(void) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Pushing");
     window_stack_push(window, animated);
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Pushed");
-    update_steps();
     // APP_LOG(APP_LOG_LEVEL_DEBUG, "available: %u", availability == HealthServiceAccessibilityMaskAvailable);
     // APP_LOG(APP_LOG_LEVEL_DEBUG, "nopermission: %u", availability & HealthServiceAccessibilityMaskNoPermission);
     // APP_LOG(APP_LOG_LEVEL_DEBUG, "notsupported: %u", availability & HealthServiceAccessibilityMaskNotSupported);
@@ -342,7 +352,6 @@ static void init(void) {
 
     app_message_register_inbox_received(inbox_handler);
     app_message_open(1024, 128);
-    health_service_events_subscribe(health_update, NULL);
 }
 
 static void deinit(void) {
