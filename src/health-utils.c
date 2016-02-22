@@ -30,7 +30,9 @@ uint32_t health_sum_timeframe(HealthMetric metric, time_t time_start, time_t tim
             APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "-> end %lu", time_end_temp);
             APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "mins gotten %lu", minutes_gotten);
             for (uint32_t i = 0; i < minutes_gotten; i++) {
-                output += minute_data[i].steps;
+                if (!minute_data[i].is_invalid) {
+                    output += minute_data[i].steps;
+                }
             }
             APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "output now %lu", output);
             time_start_calc += UPDATE_INTERVAL*60;
