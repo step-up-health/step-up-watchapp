@@ -1,6 +1,7 @@
 /*jshint -W069*/
 
 var tltoken = '';
+var base_url = 'https://pythonbackend-stepupforpebble.rhcloud.com/v1/';
 
 function stringpad(str, char, amt) {
     str = '' + str;
@@ -34,9 +35,8 @@ function send_tl_token(token) {
             console.log(this.responseText);
         }
     };
-    xhr.open('GET', 'https://pythonbackend-stepupforpebble.rhcloud.com/' +
-                    'set_timeline_token?uid=' + Pebble.getAccountToken() +
-                    '&tltoken=' + token);
+    xhr.open('GET', base_url + 'set_timeline_token?uid=' +
+                    Pebble.getAccountToken() + '&tltoken=' + token);
     xhr.send();
     // It's possible that this fails.
     // Failing is ignored for a reason:
@@ -114,9 +114,8 @@ function send_twice_daily_pin(timestr) {
             console.error(this.responseText);
         }
     };
-    xhr.open('GET', 'https://pythonbackend-stepupforpebble.rhcloud.com/' +
-                    'get_active_friends?uid=' + Pebble.getAccountToken() +
-                    '&dayhalf=' + timestr.slice(-2));
+    xhr.open('GET', base_url + 'get_active_friends?uid=' +
+                    Pebble.getAccountToken() + '&dayhalf=' + timestr.slice(-2));
     xhr.send();
 }
 
@@ -133,9 +132,9 @@ function send_hist_data(data) {
         }
     };
     var time = gen_time_string(0);
-    xhr.open('GET', 'https://pythonbackend-stepupforpebble.rhcloud.com/' +
-                    'add_data_point?uid=' + Pebble.getAccountToken() +
-                    '&steps=' + data + '&timeperiod=' + time);
+    xhr.open('GET', base_url + 'add_data_point?uid=' +
+                    Pebble.getAccountToken() + '&steps=' + data +
+                    '&timeperiod=' + time);
     xhr.send();
 }
 
@@ -163,9 +162,8 @@ function fetch_other_user_data() {
             console.error(this.responseText);
         }
     };
-    xhr.open('GET', 'https://pythonbackend-stepupforpebble.rhcloud.com/' +
-                    'get_active_friends?uid=' + Pebble.getAccountToken() +
-                    '&dayhalf=' + dayhalf);
+    xhr.open('GET', base_url + 'get_active_friends?uid=' +
+                    Pebble.getAccountToken() + '&dayhalf=' + dayhalf);
     xhr.send();
 }
 
